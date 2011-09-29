@@ -26,7 +26,14 @@ information can also live at the dataset level, but it probably makes
 more sense to put it instead at the higher level (IRATE supports both
 ways of doing it)
 
+* The Cosmology group (as defined in the IRATE specification) must be
+added - for simulations that are not technically "cosmological", you
+can just use one of the default cosmologies (WMAP7 is a reasonable
+choice - there's a function in the IRATE tools that automatically
+takes care of all the details for this).
+
 * optional: redo all the group names to follow the CamelCase
 convention - that's what we've been using elsewhere in IRATE.  This is
 an arbitrary choice, but it would be nice for it to be consistent
 throughout the format.
+
