@@ -23,7 +23,7 @@ translation_dict['cell_centered_B_y'] = 'mag_field_y'
 translation_dict['cell_centered_B_z'] = 'mag_field_z'
 
 class AthenaDistributedConverter(Converter):
-    def __init__(self, basename, outname=None):
+    def __init__(self, basename, outname=None, field_conversions=None):
         self.fields = []
         self.current_time=0.0
         name = basename.split('.')
@@ -32,6 +32,9 @@ class AthenaDistributedConverter(Converter):
         if outname is None:
             outname = self.basename+'.%04i'%self.ddn+'.gdf'
         self.outname = outname
+	if field_conversions is None:
+	    field_conversions = {}
+	self.field_conversions = field_conversions
 
 
     def parse_line(self,line, grid):
@@ -275,7 +278,10 @@ class AthenaDistributedConverter(Converter):
             except:
                 pass
             this_field = field_g.create_group(tname)
-            this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+	    if name in self.field_conversions.keys():
+		this_field.attrs['field_to_cgs'] = self.field_conversions[name]
+	    else:
+		this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
         f.close()
 
     def convert(self):
@@ -284,7 +290,7 @@ class AthenaDistributedConverter(Converter):
 
 
 class AthenaConverter(Converter):
-    def __init__(self, basename, outname=None):
+    def __init__(self, basename, outname=None, field_conversions=None):
         self.fields = []
         self.basename = basename
         name = basename.split('.')
@@ -294,7 +300,10 @@ class AthenaConverter(Converter):
         if outname is None:
             outname = fn+'.gdf'
         self.outname = outname
-        
+	if field_conversions is None:
+	    field_conversions = {}
+	self.field_conversions = field_conversions
+
 
     def parse_line(self, line, grid):
     #    print line
@@ -450,8 +459,16 @@ class AthenaConverter(Converter):
 
         # Add Field Attributes
         for name in g0.keys():
-            this_field = field_g.create_group(name)
-            this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+            tname = name
+            try:
+                tname = translation_dict[name]
+            except:
+                pass
+            this_field = field_g.create_group(tname)
+	    if name in self.field_conversions.keys():
+		this_field.attrs['field_to_cgs'] = self.field_conversions[name]
+	    else:
+		this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
 
         # Add particle types
         # Nothing to do here
