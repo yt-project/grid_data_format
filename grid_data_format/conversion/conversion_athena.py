@@ -23,12 +23,15 @@ translation_dict['cell_centered_B_y'] = 'mag_field_y'
 translation_dict['cell_centered_B_z'] = 'mag_field_z'
 
 class AthenaDistributedConverter(Converter):
-    def __init__(self, basename, outname=None, field_conversions=None):
+    def __init__(self, basename, outname=None, source_dir=None, field_conversions=None):
         self.fields = []
         self.current_time=0.0
         name = basename.split('.')
         self.ddn = int(name[1])
-        self.basename = name[0]
+	if source_dir is None:
+	    source_dir = './'
+	self.source_dir = source_dir+'/'
+	self.basename = name[0]
         if outname is None:
             outname = self.basename+'.%04i'%self.ddn+'.gdf'
         self.outname = outname
@@ -88,7 +91,7 @@ class AthenaDistributedConverter(Converter):
 
     def read_and_write_hierarchy(self,basename, ddn, gdf_name):
         """ Read Athena legacy vtk file from multiple cpus """
-        proc_names = glob('id*')
+        proc_names = glob(self.source_dir+'id*')
         print 'Reading a dataset from %i Processor Files' % len(proc_names)
         N = len(proc_names)
         grid_dims = na.empty([N,3],dtype='int64')
@@ -100,9 +103,9 @@ class AthenaDistributedConverter(Converter):
 
         for i in range(N):
             if i == 0:
-                fn = 'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
+                fn = self.source_dir+'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
             else:
-                fn = 'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
+                fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
 
             print 'Reading file %s' % fn
             f = open(fn,'rb')
@@ -201,14 +204,14 @@ class AthenaDistributedConverter(Converter):
 
 
     def read_and_write_data(self, basename, ddn, gdf_name):
-        proc_names = glob('id*')
+        proc_names = glob(self.source_dir+'id*')
         print 'Reading a dataset from %i Processor Files' % len(proc_names)
         N = len(proc_names)
         for i in range(N):
             if i == 0:
-                fn = 'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
+                fn = self.source_dir+'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
             else:
-                fn = 'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
+                fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
             f = open(fn,'rb')
             print 'Reading data from %s' % fn
             line = f.readline()
