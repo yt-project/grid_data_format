@@ -28,17 +28,17 @@ class AthenaDistributedConverter(Converter):
         self.current_time=0.0
         name = basename.split('.')
         self.ddn = int(name[1])
-	if source_dir is None:
-	    source_dir = './'
-	self.source_dir = source_dir+'/'
-	self.basename = name[0]
+        if source_dir is None:
+            source_dir = './'
+        self.source_dir = source_dir+'/'
+        self.basename = name[0]
         if outname is None:
             outname = self.basename+'.%04i'%self.ddn+'.gdf'
         self.outname = outname
-	if field_conversions is None:
-	    field_conversions = {}
-	self.field_conversions = field_conversions
-
+        if field_conversions is None:
+            field_conversions = {}
+        self.field_conversions = field_conversions
+        self.handle = None
 
     def parse_line(self,line, grid):
     #    print line
@@ -72,7 +72,7 @@ class AthenaDistributedConverter(Converter):
             grid['read_type'] = 'vector'
 
     def write_gdf_field(self, fn, grid_number, field, data):
-        f = h5.File(fn,'a')
+        f = self.handle
         ## --------- Store Grid Data --------- ##
         if 'grid_%010i'%grid_number not in f['data'].keys():
             g = f['data'].create_group('grid_%010i'%grid_number)
@@ -86,13 +86,13 @@ class AthenaDistributedConverter(Converter):
         # print 'Writing %s' % name
         if not name in g.keys(): 
             g.create_dataset(name,data=data)
-        f.close()
+        
 
 
     def read_and_write_hierarchy(self,basename, ddn, gdf_name):
         """ Read Athena legacy vtk file from multiple cpus """
         proc_names = glob(self.source_dir+'id*')
-        print 'Reading a dataset from %i Processor Files' % len(proc_names)
+        #print 'Reading a dataset from %i Processor Files' % len(proc_names)
         N = len(proc_names)
         grid_dims = na.empty([N,3],dtype='int64')
         grid_left_edges = na.empty([N,3],dtype='float64')
@@ -107,7 +107,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
 
-            print 'Reading file %s' % fn
+            #print 'Reading file %s' % fn
             f = open(fn,'rb')
             grid = {}
             grid['read_field'] = None
@@ -142,7 +142,7 @@ class AthenaDistributedConverter(Converter):
 
             f.close()
 
-        f = h5.File(gdf_name,'a')
+        f = self.handle 
 
         ## --------- Begin level nodes --------- ##
         g = f.create_group('gridded_data_format')
@@ -200,12 +200,12 @@ class AthenaDistributedConverter(Converter):
         # Nothing to do here
 
         # Add particle field attributes
-        f.close()
+        #f.close()
 
 
     def read_and_write_data(self, basename, ddn, gdf_name):
         proc_names = glob(self.source_dir+'id*')
-        print 'Reading a dataset from %i Processor Files' % len(proc_names)
+        #print 'Reading a dataset from %i Processor Files' % len(proc_names)
         N = len(proc_names)
         for i in range(N):
             if i == 0:
@@ -213,7 +213,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
             f = open(fn,'rb')
-            print 'Reading data from %s' % fn
+            #print 'Reading data from %s' % fn
             line = f.readline()
             while line is not '':
                 # print line
@@ -271,7 +271,7 @@ class AthenaDistributedConverter(Converter):
                 line = f.readline()
         f.close()
 
-        f = h5.File(gdf_name,'a')
+        f = self.handle 
         field_g = f['field_types']
         # Add Field Attributes
         for name in self.fields:
@@ -281,16 +281,17 @@ class AthenaDistributedConverter(Converter):
             except:
                 pass
             this_field = field_g.create_group(tname)
-	    if name in self.field_conversions.keys():
-		this_field.attrs['field_to_cgs'] = self.field_conversions[name]
-	    else:
-		this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
-        f.close()
+            if name in self.field_conversions.keys():
+                this_field.attrs['field_to_cgs'] = self.field_conversions[name]
+            else:
+                this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+            
 
     def convert(self):
+        self.handle = h5.File(self.outname, 'a')
         self.read_and_write_hierarchy(self.basename, self.ddn ,self.outname)
         self.read_and_write_data(self.basename, self.ddn ,self.outname)
-
+        self.handle.close()
 
 class AthenaConverter(Converter):
     def __init__(self, basename, outname=None, field_conversions=None):
@@ -303,9 +304,9 @@ class AthenaConverter(Converter):
         if outname is None:
             outname = fn+'.gdf'
         self.outname = outname
-	if field_conversions is None:
-	    field_conversions = {}
-	self.field_conversions = field_conversions
+        if field_conversions is None:
+            field_conversions = {}
+        self.field_conversions = field_conversions
 
 
     def parse_line(self, line, grid):
@@ -336,7 +337,7 @@ class AthenaConverter(Converter):
     def read_grid(self, filename):
         """ Read Athena legacy vtk file from single cpu """
         f = open(filename,'rb')
-        print 'Reading from %s'%filename
+        #print 'Reading from %s'%filename
         grid = {}
         grid['read_field'] = None
         grid['read_type'] = None
@@ -468,10 +469,10 @@ class AthenaConverter(Converter):
             except:
                 pass
             this_field = field_g.create_group(tname)
-	    if name in self.field_conversions.keys():
-		this_field.attrs['field_to_cgs'] = self.field_conversions[name]
-	    else:
-		this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+        if name in self.field_conversions.keys():
+            this_field.attrs['field_to_cgs'] = self.field_conversions[name]
+        else:
+            this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
 
         # Add particle types
         # Nothing to do here
