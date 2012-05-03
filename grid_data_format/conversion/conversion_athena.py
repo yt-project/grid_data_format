@@ -107,7 +107,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
 
-            #print 'Reading file %s' % fn
+            print 'Reading file %s' % fn
             f = open(fn,'rb')
             grid = {}
             grid['read_field'] = None
@@ -123,11 +123,14 @@ class AthenaDistributedConverter(Converter):
                 if 'TABLE' in line.strip().split():
                     break
                 if len(line) == 0: break
+                del line
                 line = f.readline()
 
             if len(line) == 0: break
+            
             if na.prod(grid['dimensions']) != grid['ncells']:
                 grid['dimensions'] -= 1
+                grid['dimensions'][grid['dimensions']==0]=1
             if na.prod(grid['dimensions']) != grid['ncells']:
                 print 'product of dimensions %i not equal to number of cells %i' % \
                       (na.prod(grid['dimensions']), grid['ncells'])
@@ -141,7 +144,7 @@ class AthenaDistributedConverter(Converter):
             del grid
 
             f.close()
-
+            del f
         f = self.handle 
 
         ## --------- Begin level nodes --------- ##
@@ -229,12 +232,14 @@ class AthenaDistributedConverter(Converter):
                     line = f.readline()
                     if na.prod(grid_dims) != grid_ncells:
                         grid_dims -= 1
+                        grid_dims[grid_dims==0]=1
                     if na.prod(grid_dims) != grid_ncells:
                         print 'product of dimensions %i not equal to number of cells %i' % \
                               (na.prod(grid_dims), grid_ncells)
                         raise TypeError
                     break
                 else:
+                    del line
                     line = f.readline()
             read_table = False
             while line is not '':
@@ -268,8 +273,10 @@ class AthenaDistributedConverter(Converter):
                     self.write_gdf_field(gdf_name, i, field+'_y', data_y)
                     self.write_gdf_field(gdf_name, i, field+'_z', data_z)
                     del data, data_x, data_y, data_z
+                del line
                 line = f.readline()
-        f.close()
+            f.close()
+            del f
 
         f = self.handle 
         field_g = f['field_types']
@@ -287,10 +294,12 @@ class AthenaDistributedConverter(Converter):
                 this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
             
 
-    def convert(self):
+    def convert(self, hierarchy=True, data=True):
         self.handle = h5.File(self.outname, 'a')
-        self.read_and_write_hierarchy(self.basename, self.ddn ,self.outname)
-        self.read_and_write_data(self.basename, self.ddn ,self.outname)
+        if hierarchy:
+            self.read_and_write_hierarchy(self.basename, self.ddn ,self.outname)
+        if data:
+            self.read_and_write_data(self.basename, self.ddn ,self.outname)
         self.handle.close()
 
 class AthenaConverter(Converter):
