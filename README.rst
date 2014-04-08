@@ -11,7 +11,6 @@ Caveats and Notes
 -----------------
 
 #. We avoid having many attributes on many nodes, as access can be quite slow
-#. Cartesian data only for now
 #. All grids must have the same number of ghost zones.
 #. If `/grid_parent` does not exist, parentage relationships will be
    reconstructed and assumed to allow multiple grids
@@ -193,6 +192,9 @@ These attributes will all be associated with ``/simulation_parameters``.
    left in 2nd dimension, right in 2nd dimension.  Note also that yt does not currently support non-periodic
    boundary conditions, and that the assumption of periodicity shows up primarily in plots and
    covering grids.
+``geometry``
+   integer: 0 for cartesian *[x,y,z]* (default, assumed if keyword is not present), 
+   1 for polar *[r, theta, z]*, 2 for cylindrical *[r, z, theta]*, 3 for spherical *[r, theta, phi]*.
 
 Optionally, attributes for cosmological simulations can be provided, if
 cosmological_simulation above is set to 1:
