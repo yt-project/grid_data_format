@@ -27,7 +27,7 @@ Caveats and Notes
    this format.)
 #. All fluid fields in this version of the format are assumed to have the
    dimensionality of the grid they reside in plus any ghost zones, plus any
-   additionaly dimensionality required by the staggering property.
+   additionally dimensionality required by the staggering property.
 #. Particles may have dataspaces affiliated with them.  (See Enzo's
    OutputParticleTypeGrouping for more information.)  This enables a light
    wrapper around data formats with interspersed particle types.
@@ -48,7 +48,7 @@ this group must exist: ::
    /gridded_data_format
 
 This must contain the (float) attribute ``format_version``.  This document
-describes version 1.0.  Optional attributes may exist:
+describes version 1.1.  Optional attributes may exist:
 
 ``data_software``
    string, references the application creating the file, not the
@@ -71,6 +71,7 @@ At least five top-level groups must exist, although some may be empty. ::
    /simulation_parameters
    /field_types
    /particle_types
+   /dataset_units
 
 Additionally, the grid structure elements must exist.  The 0-indexed index into this array
 defines a unique "Grid ID".
@@ -172,11 +173,11 @@ These attributes will all be associated with ``/simulation_parameters``.
 ``domain_dimensions``
    dimensions in the top grid
 ``current_time``
-   current time in simulation, in seconds, from “start” of simulation
+   current time in simulation, in *time_unit* (see Dataset Units), from “start” of simulation
 ``domain_left_edge``
-   the left edge of the domain, in cm
+   the left edge of the domain, in *length_unit* 
 ``domain_right_edge``
-   the right edge of the domain, in cm
+   the right edge of the domain, in *length_unit*
 ``unique_identifier``
    regarded as a string, but can be anything
 ``cosmological_simulation``
@@ -256,11 +257,30 @@ containing the following attributes:
 
 ``field_name``
    a string that will be used to describe the field; can contain spaces.
-``field_to_cgs``
+``field_to_cgs`` **(deprecated)**
    a float that will be used to convert the field to cgs units, if necessary.
    Set to 1.0 if no conversion necessary.
 ``field_units``
    a string that names the units.
+
+
+Dataset Units
++++++++++++++
+
+Each dataset within the group ``/dataset_units`` must be a scalar or one-element
+array (float64) with a mandatory string attribute name ``unit``. Each entry
+should define conversion factor of given quantity from code to physical units.
+Following datasets are mandatory: ::
+
+   length_unit
+   mass_unit
+   time_unit
+   velocity_unit
+   magnetic_unit
+
+Additionally, every *field_name* defined in ``field_types`` must be provided in
+``/dataset_units`` in a similar fashion.
+
 
 Role of YT
 ----------
@@ -273,7 +293,7 @@ yt will also provide a writer for this data, which will operate on any existing
 data format.  Provided that a simulation code can read this data, this will
 enable cross-platform comparison.  Furthermore, any external piece of software
 (i.e., Stranger) that implements reading this format will be able to read any
-format of data tha yt understands.
+format of data that yt understands.
 
 Example File
 ------------
